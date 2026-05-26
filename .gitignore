@@ -1,0 +1,18 @@
+# Brainstorm working dir (mockups + state)
+.superpowers/
+
+# Swift / Xcode
+.build/
+.swiftpm/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+.DS_Store
+
+# Node (for xterm bundle build)
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
