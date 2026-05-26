@@ -65,6 +65,9 @@ schemes:
         SpecterTests: [test]
         SpecterUITests: [test]
     test:
+      # Note: UI tests need a real signing identity (Team ID) to run via xcodebuild CLI
+      # because of the dyld code-signature check on the test bundle host. They are
+      # invokable explicitly via Xcode IDE or `xcodebuild ... -only-testing:SpecterUITests
+      # CODE_SIGN_IDENTITY="..." DEVELOPMENT_TEAM=...`. Default CI/test action runs unit only.
       targets:
         - SpecterTests
-        - SpecterUITests
