@@ -17,6 +17,10 @@ final class AppEnvironment {
     var applyError: String?
     var lastReloadResult: ReloadResult?
     var isApplying: Bool = false
+    var ghostyBinaryFound: Bool = false
+    // Eagerly-loaded so theme/font Pickers don't pop empty on first open.
+    var availableThemes: [String] = []
+    var availableFonts: [String] = []
 
     static var defaultConfigURL: URL {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -37,21 +41,29 @@ final class AppEnvironment {
          ghostyBinary: URL? = nil) {
         self.configFileService = ConfigFileService(configURL: configURL)
         self.backupService = BackupService(configURL: configURL, backupDir: backupDir)
-        let bin = ghostyBinary
-            ?? GhostyCLI.resolvedBinary()
-            ?? URL(fileURLWithPath: "/opt/homebrew/bin/ghostty")
+        let resolved = ghostyBinary ?? GhostyCLI.resolvedBinary()
+        let bin = resolved ?? URL(fileURLWithPath: "/opt/homebrew/bin/ghostty")
         self.ghostyCLI = GhostyCLI(binaryURL: bin)
         self.reloadHelper = ReloadHelper()
     }
 
     func bootstrap() async {
         registry = OptionRegistry.curatedV1()
+        self.ghostyBinaryFound = GhostyCLI.resolvedBinary() != nil
         do {
             let parsed = try await configFileService.read()
             self.configModel = ConfigModel(initialValues: parsed.values)
             self.lastReadTokens = parsed.tokens
         } catch {
             self.loadError = "Failed to read config: \(error.localizedDescription)"
+        }
+        // Eagerly populate Picker data so users don't see empty dropdowns.
+        if ghostyBinaryFound {
+            async let themes = (try? await ghostyCLI.listThemes()) ?? []
+            async let fonts = (try? await ghostyCLI.listFonts()) ?? []
+            let (t, f) = await (themes, fonts)
+            self.availableThemes = t
+            self.availableFonts = f
         }
     }
 
@@ -68,8 +80,11 @@ final class AppEnvironment {
         }
         do {
             let parsed = try await configFileService.read()
-            let valuesSnapshot = configModel.values   // Sendable (dict of ConfigValue)
-            try await configFileService.write(values: valuesSnapshot, originalTokens: parsed.tokens)
+            // Only write the keys the user actually edited. Passing the whole values dict caused
+            // a data-loss bug for multi-value keys like `keybind` (Ghostty allows repeats).
+            let dirtyKeys = configModel.dirtyKeys
+            let dirtyValues = configModel.values.filter { dirtyKeys.contains($0.key) }
+            try await configFileService.write(dirtyValues: dirtyValues, originalTokens: parsed.tokens)
             self.configModel.commit()
             self.lastReadTokens = parsed.tokens
         } catch {

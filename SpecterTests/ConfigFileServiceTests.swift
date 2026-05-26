@@ -44,7 +44,8 @@ final class ConfigFileServiceTests: XCTestCase {
         let model = ConfigModel(initialValues: parsed.values)
         model.set("theme", .string("TokyoNight"))
 
-        try await svc.write(values: model.values, originalTokens: parsed.tokens)
+        let dirty = model.values.filter { model.dirtyKeys.contains($0.key) }
+        try await svc.write(dirtyValues: dirty, originalTokens: parsed.tokens)
         let after = try String(contentsOf: url, encoding: .utf8)
 
         XCTAssertTrue(after.contains("# my heading"))
@@ -58,7 +59,7 @@ final class ConfigFileServiceTests: XCTestCase {
         let svc = ConfigFileService(configURL: url)
         let parsed = try await svc.read()
         let model = ConfigModel(initialValues: parsed.values)
-        try await svc.write(values: model.values, originalTokens: parsed.tokens)
+        try await svc.write(dirtyValues: [:], originalTokens: parsed.tokens)
         let siblings = try FileManager.default.contentsOfDirectory(atPath: tempDir.path)
         XCTAssertFalse(siblings.contains(where: { $0.hasSuffix(".tmp") }))
     }
@@ -68,9 +69,38 @@ final class ConfigFileServiceTests: XCTestCase {
         let svc = ConfigFileService(configURL: url)
         let model = ConfigModel(initialValues: [:])
         model.set("theme", .string("Mocha"))
-        try await svc.write(values: model.values, originalTokens: [])
+        let dirty = model.values.filter { model.dirtyKeys.contains($0.key) }
+        try await svc.write(dirtyValues: dirty, originalTokens: [])
         let content = try String(contentsOf: url, encoding: .utf8)
         XCTAssertTrue(content.contains("theme = Mocha"))
         XCTAssertTrue(content.contains("# Added by Specter"))
+    }
+
+    /// Regression test for the keybind data-loss bug:
+    /// Ghostty config allows the same key (e.g. `keybind = ...`) to appear multiple times.
+    /// If the user doesn't edit any of those lines, write() must leave ALL of them byte-identical.
+    func test_writePreservesDuplicateUneditedKeys() async throws {
+        let original = """
+        theme = Mocha
+        keybind = super+q=close_window
+        keybind = super+t=new_tab
+        keybind = super+i=inspector:toggle
+        font-size = 14
+        """
+        let url = try writeFixture("config", original)
+        let svc = ConfigFileService(configURL: url)
+        let parsed = try await svc.read()
+        let model = ConfigModel(initialValues: parsed.values)
+        model.set("theme", .string("TokyoNight"))   // user edits only `theme`
+
+        let dirty = model.values.filter { model.dirtyKeys.contains($0.key) }
+        try await svc.write(dirtyValues: dirty, originalTokens: parsed.tokens)
+        let after = try String(contentsOf: url, encoding: .utf8)
+
+        XCTAssertTrue(after.contains("keybind = super+q=close_window"))
+        XCTAssertTrue(after.contains("keybind = super+t=new_tab"))
+        XCTAssertTrue(after.contains("keybind = super+i=inspector:toggle"))
+        XCTAssertTrue(after.contains("theme = TokyoNight"))
+        XCTAssertFalse(after.contains("= Mocha"))
     }
 }

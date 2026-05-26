@@ -25,15 +25,19 @@ actor ConfigFileService {
 
     /// `originalTokens` come from `read()`; pass them through so the writer can patch in-place
     /// while preserving comments / blanks / unknown keys byte-for-byte.
-    /// Takes `values: [String: ConfigValue]` (Sendable) rather than the non-Sendable ConfigModel.
-    func write(values: [String: ConfigValue], originalTokens: [ConfigToken]) throws {
+    ///
+    /// **Critical**: only pass `dirtyValues` — keys the user actually edited. Passing the full
+    /// values dict caused a data-loss bug where any key appearing multiple times in the original
+    /// (e.g. multiple `keybind = ...` lines) got *every* occurrence rewritten with the last-seen
+    /// value. By restricting to dirty keys, unedited multi-value keys pass through byte-identical.
+    func write(dirtyValues: [String: ConfigValue], originalTokens: [ConfigToken]) throws {
         let originalKeys = Set(originalTokens.compactMap { token -> String? in
             if case .entry(let k, _, _) = token { return k } else { return nil }
         })
 
         var patches: [String: ConfigValue] = [:]
         var appending: [String: ConfigValue] = [:]
-        for (key, val) in values {
+        for (key, val) in dirtyValues {
             if originalKeys.contains(key) {
                 patches[key] = val
             } else {

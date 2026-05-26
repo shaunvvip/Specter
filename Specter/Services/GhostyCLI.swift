@@ -34,7 +34,7 @@ actor GhostyCLI {
         if let cached = cachedThemes { return cached }
         let out = try run(["+list-themes"])
         let themes = out.split(separator: "\n").map {
-            String($0).trimmingCharacters(in: .whitespaces)
+            Self.stripSourceSuffix(String($0).trimmingCharacters(in: .whitespaces))
         }.filter { !$0.isEmpty }
         cachedThemes = themes
         return themes
@@ -44,10 +44,23 @@ actor GhostyCLI {
         if let cached = cachedFonts { return cached }
         let out = try run(["+list-fonts"])
         let fonts = out.split(separator: "\n").map {
-            String($0).trimmingCharacters(in: .whitespaces)
+            Self.stripSourceSuffix(String($0).trimmingCharacters(in: .whitespaces))
         }.filter { !$0.isEmpty }
         cachedFonts = fonts
         return fonts
+    }
+
+    /// `ghostty +list-themes / +list-fonts` annotate items with a source suffix like
+    /// `Catppuccin Mocha (resources)` or `MyCustomTheme (user)`. The annotation is not part
+    /// of the theme/font name and would be invalid if written back into a config file.
+    private static func stripSourceSuffix(_ s: String) -> String {
+        if s.hasSuffix(" (resources)") {
+            return String(s.dropLast(" (resources)".count))
+        }
+        if s.hasSuffix(" (user)") {
+            return String(s.dropLast(" (user)".count))
+        }
+        return s
     }
 
     func version() async throws -> String {
