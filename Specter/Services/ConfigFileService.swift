@@ -25,14 +25,15 @@ actor ConfigFileService {
 
     /// `originalTokens` come from `read()`; pass them through so the writer can patch in-place
     /// while preserving comments / blanks / unknown keys byte-for-byte.
-    func write(model: ConfigModel, originalTokens: [ConfigToken]) throws {
+    /// Takes `values: [String: ConfigValue]` (Sendable) rather than the non-Sendable ConfigModel.
+    func write(values: [String: ConfigValue], originalTokens: [ConfigToken]) throws {
         let originalKeys = Set(originalTokens.compactMap { token -> String? in
             if case .entry(let k, _, _) = token { return k } else { return nil }
         })
 
         var patches: [String: ConfigValue] = [:]
         var appending: [String: ConfigValue] = [:]
-        for (key, val) in model.values {
+        for (key, val) in values {
             if originalKeys.contains(key) {
                 patches[key] = val
             } else {

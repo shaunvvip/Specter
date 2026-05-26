@@ -44,7 +44,7 @@ final class ConfigFileServiceTests: XCTestCase {
         let model = ConfigModel(initialValues: parsed.values)
         model.set("theme", .string("TokyoNight"))
 
-        try await svc.write(model: model, originalTokens: parsed.tokens)
+        try await svc.write(values: model.values, originalTokens: parsed.tokens)
         let after = try String(contentsOf: url, encoding: .utf8)
 
         XCTAssertTrue(after.contains("# my heading"))
@@ -58,7 +58,7 @@ final class ConfigFileServiceTests: XCTestCase {
         let svc = ConfigFileService(configURL: url)
         let parsed = try await svc.read()
         let model = ConfigModel(initialValues: parsed.values)
-        try await svc.write(model: model, originalTokens: parsed.tokens)
+        try await svc.write(values: model.values, originalTokens: parsed.tokens)
         let siblings = try FileManager.default.contentsOfDirectory(atPath: tempDir.path)
         XCTAssertFalse(siblings.contains(where: { $0.hasSuffix(".tmp") }))
     }
@@ -68,7 +68,7 @@ final class ConfigFileServiceTests: XCTestCase {
         let svc = ConfigFileService(configURL: url)
         let model = ConfigModel(initialValues: [:])
         model.set("theme", .string("Mocha"))
-        try await svc.write(model: model, originalTokens: [])
+        try await svc.write(values: model.values, originalTokens: [])
         let content = try String(contentsOf: url, encoding: .utf8)
         XCTAssertTrue(content.contains("theme = Mocha"))
         XCTAssertTrue(content.contains("# Added by Specter"))
