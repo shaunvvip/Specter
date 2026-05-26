@@ -1,0 +1,73 @@
+name: Specter
+options:
+  bundleIdPrefix: com.specter
+  deploymentTarget:
+    macOS: "14.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
+targets:
+  Specter:
+    type: application
+    platform: macOS
+    sources:
+      - path: Specter
+        excludes:
+          - "Resources/preview/xterm.bundle.js"
+    resources:
+      - path: Specter/Resources
+    info:
+      path: Specter/Info.plist
+      properties:
+        CFBundleName: Specter
+        CFBundleDisplayName: Specter
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "14.0"
+        NSHighResolutionCapable: YES
+        NSAppleEventsUsageDescription: "Specter uses Apple Events to ask Ghostty to reload its configuration after you apply changes."
+    entitlements:
+      path: Specter/Specter.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+        com.apple.security.automation.apple-events: true
+  SpecterTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: SpecterTests
+    resources:
+      - path: SpecterTests/Fixtures
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: Specter
+  SpecterUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: SpecterUITests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: Specter
+schemes:
+  Specter:
+    build:
+      targets:
+        Specter: all
+        SpecterTests: [test]
+        SpecterUITests: [test]
+    test:
+      # Note: UI tests need a real signing identity (Team ID) to run via xcodebuild CLI
+      # because of the dyld code-signature check on the test bundle host. They are
+      # invokable explicitly via Xcode IDE or `xcodebuild ... -only-testing:SpecterUITests
+      # CODE_SIGN_IDENTITY="..." DEVELOPMENT_TEAM=...`. Default CI/test action runs unit only.
+      targets:
+        - SpecterTests

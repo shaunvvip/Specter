@@ -1,0 +1,18 @@
+{
+  "name": "specter-preview",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@xterm/xterm": "^5.5.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}
