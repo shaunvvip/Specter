@@ -1,7 +1,11 @@
 import Foundation
 
 enum PreviewBridge {
-    static func translate(_ model: ConfigModel) -> XtermOptions {
+    /// Translate the current in-memory config to a renderable XtermOptions snapshot.
+    ///
+    /// `themeColors` is the already-loaded XtermTheme matching the user's `theme` setting.
+    /// Pass `nil` if not yet loaded; we fall back to Mocha so the preview is never blank.
+    static func translate(_ model: ConfigModel, themeColors: XtermTheme? = nil) -> XtermOptions {
         func str(_ key: String, default def: String) -> String {
             if case .string(let s) = model.values[key] { return s }
             return def
@@ -24,9 +28,6 @@ enum PreviewBridge {
             str("window-padding-y", default: "6,0")
         )
 
-        let themeName = parseThemeName(str("theme", default: ""))
-        let theme = XtermTheme.builtin(named: themeName) ?? .mocha
-
         return XtermOptions(
             fontFamily: str("font-family", default: "JetBrains Mono"),
             fontSize: int("font-size", default: 14),
@@ -35,7 +36,7 @@ enum PreviewBridge {
             paddingY: py,
             cursorStyle: str("cursor-style", default: "block"),
             cursorBlink: bool("cursor-style-blink", default: true),
-            theme: theme
+            theme: themeColors ?? .mocha
         )
     }
 
@@ -45,8 +46,9 @@ enum PreviewBridge {
         return (xVal, yVal)
     }
 
-    /// Accepts both `Mocha` and `light:Latte,dark:Mocha`; returns the dark name (current macOS Appearance can refine later).
-    private static func parseThemeName(_ raw: String) -> String {
+    /// Accepts both `Mocha` and `light:Latte,dark:Mocha`; returns the dark name
+    /// (future: pick light vs dark based on current macOS appearance).
+    static func parseThemeName(_ raw: String) -> String {
         if raw.contains(":") {
             for part in raw.split(separator: ",") {
                 let kv = part.split(separator: ":", maxSplits: 1).map(String.init)

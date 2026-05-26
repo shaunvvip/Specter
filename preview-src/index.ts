@@ -65,37 +65,37 @@ function applyOpacity(hex: string, opacity: number): string {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
-// Demo content (looped)
+// Static demo: written once, never looped or cleared.
+// Reveals palette colors (0-15) + foreground + background so every theme change shows visible delta.
 const lines: string[] = [
   "\x1b[36m~ $\x1b[0m neofetch",
-  "\x1b[34m   ▄▀▀▀▀▀▀▀▀▀▄    \x1b[33mOS:\x1b[0m   macOS Sequoia",
-  "\x1b[34m  █  ◯     ◯  █   \x1b[33mShell:\x1b[0m zsh 5.9",
-  "\x1b[34m  █    ▼      █   \x1b[33mEditor:\x1b[0m nvim 0.10",
-  "\x1b[34m   ▀▀▀▀▀▀▀▀▀▀▀    \x1b[33mTheme:\x1b[0m Specter live preview",
   "",
-  "\x1b[36m~ $\x1b[0m ls -lah",
-  "\x1b[32mtotal 64K\x1b[0m",
-  "drwxr-xr-x  10 user  staff   320B  .",
-  "-rw-r--r--   1 user  staff   1.2K  \x1b[34mREADME.md\x1b[0m",
-  "-rw-r--r--   1 user  staff   3.8K  \x1b[34mpackage.json\x1b[0m",
-  "drwxr-xr-x   8 user  staff   256B  \x1b[34msrc/\x1b[0m",
+  "                          \x1b[1m\x1b[34mOS\x1b[0m       macOS Sequoia",
+  "       \x1b[33m///\x1b[36m////    \x1b[0m       \x1b[1m\x1b[34mHost\x1b[0m     MacBook Pro M3",
+  "      \x1b[33m/////\x1b[36m///\x1b[31m/\x1b[0m       \x1b[1m\x1b[34mShell\x1b[0m    zsh 5.9",
+  "     \x1b[33m//\x1b[31m///////\x1b[35m/\x1b[0m       \x1b[1m\x1b[34mEditor\x1b[0m   nvim 0.10",
+  "    \x1b[31m/////////\x1b[35m///\x1b[0m       \x1b[1m\x1b[34mTerm\x1b[0m     Ghostty",
+  "     \x1b[31m///\x1b[35m///////\x1b[34m/\x1b[0m       \x1b[1m\x1b[34mTheme\x1b[0m    Specter Preview",
+  "      \x1b[35m/////\x1b[34m///\x1b[36m/\x1b[0m",
+  "       \x1b[34m///\x1b[36m////\x1b[0m         \x1b[40m   \x1b[41m   \x1b[42m   \x1b[43m   \x1b[44m   \x1b[45m   \x1b[46m   \x1b[47m   \x1b[0m",
+  "                          \x1b[100m   \x1b[101m   \x1b[102m   \x1b[103m   \x1b[104m   \x1b[105m   \x1b[106m   \x1b[107m   \x1b[0m",
   "",
-  "\x1b[36m~ $\x1b[0m git status",
+  "\x1b[36m~ $\x1b[0m \x1b[32mgit status\x1b[0m",
   "On branch \x1b[32mmain\x1b[0m",
   "Changes to be committed:",
   "  \x1b[32mmodified:\x1b[0m   src/App.tsx",
   "  \x1b[31mdeleted:\x1b[0m    legacy/util.js",
+  "  \x1b[33mrenamed:\x1b[0m    docs/old.md -> docs/v2.md",
   "",
-  "\x1b[36m~ $\x1b[0m \x1b[5m▎\x1b[0m",
+  "\x1b[36m~ $\x1b[0m \x1b[34mls -lah\x1b[0m",
+  "\x1b[2mdrwxr-xr-x  10 user  staff   320B  .\x1b[0m",
+  "-rw-r--r--   1 user  staff   1.2K  \x1b[34mREADME.md\x1b[0m",
+  "-rw-r--r--   1 user  staff   3.8K  \x1b[34mpackage.json\x1b[0m",
+  "drwxr-xr-x   8 user  staff   256B  \x1b[34msrc/\x1b[0m",
+  "",
+  "\x1b[36m~ $\x1b[0m \x1b[7m▎\x1b[0m",
 ];
 
-let i = 0;
-function emit() {
-  term.writeln(lines[i % lines.length]);
-  i++;
-  if (i % lines.length === 0) {
-    setTimeout(() => term.clear(), 1500);
-  }
-  setTimeout(emit, 380);
+for (const line of lines) {
+  term.writeln(line);
 }
-emit();

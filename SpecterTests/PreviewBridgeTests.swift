@@ -41,14 +41,23 @@ final class PreviewBridgeTests: XCTestCase {
         XCTAssertEqual(opts.paddingY, 8)
     }
 
-    func test_themeLookup_mocha() {
-        let m = ConfigModel(initialValues: ["theme": .string("Mocha")])
+    func test_themeColorsArgPassedThrough() {
+        let m = ConfigModel(initialValues: ["theme": .string("Anything")])
+        let custom = XtermTheme.tokyoNightStorm
+        XCTAssertEqual(PreviewBridge.translate(m, themeColors: custom).theme.background, "#24283b")
+    }
+
+    func test_noThemeColors_fallsBackToMocha() {
+        let m = ConfigModel(initialValues: ["theme": .string("Anything")])
+        // ThemeLoader hasn't loaded anything yet — preview shouldn't be blank, should show Mocha.
         XCTAssertEqual(PreviewBridge.translate(m).theme.background, "#1e1e2e")
     }
 
-    func test_themeLookup_lightDarkPair_picksDark() {
-        let m = ConfigModel(initialValues: ["theme": .string("light:Latte,dark:TokyoNight Storm")])
-        XCTAssertEqual(PreviewBridge.translate(m).theme.background, "#24283b")
+    func test_parseThemeName_dropsLightDarkPrefix() {
+        XCTAssertEqual(PreviewBridge.parseThemeName("light:Latte,dark:Mocha"), "Mocha")
+        XCTAssertEqual(PreviewBridge.parseThemeName("dark:Mocha,light:Latte"), "Mocha")
+        XCTAssertEqual(PreviewBridge.parseThemeName("Plain Name"), "Plain Name")
+        XCTAssertEqual(PreviewBridge.parseThemeName(""), "")
     }
 
     func test_jsonSerializable() throws {

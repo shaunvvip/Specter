@@ -25,7 +25,7 @@ struct PreviewPane: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        let opts = PreviewBridge.translate(env.configModel)
+        let opts = PreviewBridge.translate(env.configModel, themeColors: env.currentThemeColors)
         guard let data = try? JSONEncoder().encode(opts),
               let json = String(data: data, encoding: .utf8) else { return }
         let js = "window.applyPreview && window.applyPreview(\(json));"

@@ -8,6 +8,7 @@ final class AppEnvironment {
     let backupService: BackupService
     let ghostyCLI: GhostyCLI
     let reloadHelper: ReloadHelper
+    let themeLoader: ThemeLoader
 
     var registry: OptionRegistry = OptionRegistry(entries: [], curated: [])
     var configModel: ConfigModel = ConfigModel(initialValues: [:])
@@ -21,6 +22,8 @@ final class AppEnvironment {
     // Eagerly-loaded so theme/font Pickers don't pop empty on first open.
     var availableThemes: [String] = []
     var availableFonts: [String] = []
+    // Live theme colors for the current `theme` value, used by PreviewBridge.
+    var currentThemeColors: XtermTheme = .mocha
 
     static var defaultConfigURL: URL {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -45,6 +48,7 @@ final class AppEnvironment {
         let bin = resolved ?? URL(fileURLWithPath: "/opt/homebrew/bin/ghostty")
         self.ghostyCLI = GhostyCLI(binaryURL: bin)
         self.reloadHelper = ReloadHelper()
+        self.themeLoader = ThemeLoader(ghostyBinaryURL: bin)
     }
 
     func bootstrap() async {
@@ -64,6 +68,21 @@ final class AppEnvironment {
             let (t, f) = await (themes, fonts)
             self.availableThemes = t
             self.availableFonts = f
+        }
+        await reloadCurrentThemeColors()
+    }
+
+    /// Re-read the theme file matching `configModel.values["theme"]` and update
+    /// `currentThemeColors` so PreviewPane redraws with the right palette.
+    /// Call this on bootstrap, and whenever `theme` changes.
+    func reloadCurrentThemeColors() async {
+        let rawTheme: String
+        if case .string(let s) = configModel.values["theme"] { rawTheme = s } else { rawTheme = "" }
+        let themeName = PreviewBridge.parseThemeName(rawTheme)
+        if let loaded = await themeLoader.load(themeName) {
+            self.currentThemeColors = loaded
+        } else {
+            self.currentThemeColors = .mocha
         }
     }
 
