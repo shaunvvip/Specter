@@ -43,12 +43,18 @@ targets:
     sources: SpecterTests
     resources:
       - path: SpecterTests/Fixtures
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: Specter
   SpecterUITests:
     type: bundle.ui-testing
     platform: macOS
     sources: SpecterUITests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: Specter
 schemes:
