@@ -15,11 +15,11 @@
 
 ## Install
 
-```bash
-brew install --cask specter         # coming soon
-```
+> v0.1 is an early alpha; no signed/notarized builds yet. Build from source for now.
 
-Or download a `.dmg` from [Releases](https://github.com/YOUR_USER/Specter/releases) (once signed/notarized releases are out).
+```bash
+brew install --cask specter         # planned once notarized releases ship
+```
 
 ## Build from source
 
