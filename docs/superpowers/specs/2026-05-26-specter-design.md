@@ -286,7 +286,7 @@ CI: GitHub Actions, `macos-14` runner, `swift test` + `xcodebuild test -scheme S
 
 ## 10. Project Layout (v1)
 
-> Current working directory is `~/personal-projects/ghostty-config-gui/` (placeholder name from before brand decision); will be renamed to `Specter/` before pushing to GitHub.
+> Repo root: `~/personal-projects/Specter/`.
 
 
 ```
