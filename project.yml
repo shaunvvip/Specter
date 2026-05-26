@@ -1,0 +1,64 @@
+name: Specter
+options:
+  bundleIdPrefix: com.specter
+  deploymentTarget:
+    macOS: "14.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
+targets:
+  Specter:
+    type: application
+    platform: macOS
+    sources:
+      - path: Specter
+        excludes:
+          - "Resources/preview/xterm.bundle.js"
+    resources:
+      - path: Specter/Resources
+    info:
+      path: Specter/Info.plist
+      properties:
+        CFBundleName: Specter
+        CFBundleDisplayName: Specter
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "14.0"
+        NSHighResolutionCapable: YES
+        NSAppleEventsUsageDescription: "Specter uses Apple Events to ask Ghostty to reload its configuration after you apply changes."
+    entitlements:
+      path: Specter/Specter.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+        com.apple.security.automation.apple-events: true
+  SpecterTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: SpecterTests
+    resources:
+      - path: SpecterTests/Fixtures
+    dependencies:
+      - target: Specter
+  SpecterUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: SpecterUITests
+    dependencies:
+      - target: Specter
+schemes:
+  Specter:
+    build:
+      targets:
+        Specter: all
+        SpecterTests: [test]
+        SpecterUITests: [test]
+    test:
+      targets:
+        - SpecterTests
+        - SpecterUITests
