@@ -19,7 +19,11 @@ actor GhostyCLI {
     }
 
     static func resolvedBinary() -> URL? {
-        let candidates = ["/opt/homebrew/bin/ghostty", "/usr/local/bin/ghostty"]
+        let candidates = [
+            "/Applications/Ghostty.app/Contents/MacOS/ghostty",     // official Mac app install
+            "/opt/homebrew/bin/ghostty",                             // Homebrew (Apple Silicon)
+            "/usr/local/bin/ghostty",                                // Homebrew (Intel)
+        ]
         for path in candidates where FileManager.default.isExecutableFile(atPath: path) {
             return URL(fileURLWithPath: path)
         }

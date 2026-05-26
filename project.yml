@@ -19,9 +19,13 @@ targets:
     sources:
       - path: Specter
         excludes:
-          - "Resources/preview/xterm.bundle.js"
-    resources:
-      - path: Specter/Resources
+          - "Resources/preview"
+          - "Resources/preview/**"
+      # Folder reference: preserves the `preview/` subdirectory in the .app bundle so
+      # Bundle.url(forResource:withExtension:subdirectory:"preview") works at runtime.
+      - path: Specter/Resources/preview
+        type: folder
+        buildPhase: resources
     info:
       path: Specter/Info.plist
       properties:
