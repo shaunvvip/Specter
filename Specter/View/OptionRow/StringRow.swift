@@ -15,7 +15,8 @@ struct StringRow: View {
                 set: { env.configModel.set(entry.key, .string($0)) }
             ))
             .textFieldStyle(.roundedBorder)
-            .frame(width: 140)
+            .frame(width: 110)
+            .controlSize(.small)
         }
     }
 }

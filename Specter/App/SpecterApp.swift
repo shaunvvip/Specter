@@ -12,8 +12,9 @@ struct SpecterApp: App {
                 .preferredColorScheme(.dark)
                 .task { await env.bootstrap() }
         }
-        .windowStyle(.titleBar)
-        .windowToolbarStyle(.unified(showsTitle: true))
+        // Hidden title bar — keep traffic lights, lose the system bar.
+        // Our TitleBar draws underneath with 70px leading gutter.
+        .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1280, height: 820)
     }
 }

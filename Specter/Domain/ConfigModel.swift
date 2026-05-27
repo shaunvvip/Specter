@@ -37,4 +37,10 @@ final class ConfigModel {
     func commit() {
         applied = values
     }
+
+    /// Read access to the last-applied (disk-synced) value for a key. nil = the
+    /// key was never present on disk → "Apply" will append it.
+    func appliedValue(for key: String) -> ConfigValue? {
+        applied[key]
+    }
 }

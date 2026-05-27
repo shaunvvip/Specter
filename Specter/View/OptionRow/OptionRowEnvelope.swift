@@ -1,7 +1,10 @@
 import SwiftUI
 
 /// One option row, rendered as a light card with key (monospaced), help text, and value chip.
-/// Highlights with a soft blue tint when dirty.
+///
+/// Layout (within 342px inspector pane, minus 28px*2 outer + 16px*2 inner = 254px usable):
+/// - left text column: flex (key truncates, help wraps up to 3 lines)
+/// - right control slot: compact, fixed widths capped so text column always wins
 struct OptionRowEnvelope<Content: View>: View {
     let entry: OptionEntry
     @Environment(AppEnvironment.self) private var env
@@ -12,19 +15,24 @@ struct OptionRowEnvelope<Content: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
+        HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(entry.key)
                     .font(.system(size: 13, design: .monospaced))
                     .foregroundStyle(Palette.inspectorText)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                 Text(entry.docMarkdown)
                     .font(.system(size: 11))
                     .foregroundStyle(Color(hex: 0x697386))
-                    .lineSpacing(1.5)
+                    .lineSpacing(2)
+                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             control()
+                .layoutPriority(0)
         }
         .padding(.horizontal, 16).padding(.vertical, 14)
         .frame(minHeight: 78)
@@ -53,8 +61,9 @@ struct ValueChip: View {
         Text(text)
             .font(.system(size: 11, weight: .heavy))
             .foregroundStyle(textColor)
-            .padding(.horizontal, 12)
-            .frame(minWidth: 78, minHeight: 32)
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .frame(minWidth: 56, minHeight: 28)
             .background(
                 RoundedRectangle(cornerRadius: 8).fill(bgColor)
             )
