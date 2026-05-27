@@ -3,13 +3,12 @@ import SwiftUI
 struct SliderRow: View {
     let entry: OptionEntry
     @Environment(AppEnvironment.self) private var env
-    @State private var expanded = false
 
     var body: some View {
-        OptionRowEnvelope(entry: entry, isExpanded: $expanded) {
+        OptionRowEnvelope(entry: entry) {
             switch entry.type {
             case .integer(let range):
-                HStack {
+                HStack(spacing: 10) {
                     Slider(value: Binding(
                         get: {
                             if case .integer(let i) = env.configModel.values[entry.key] { return Double(i) }
@@ -18,10 +17,11 @@ struct SliderRow: View {
                         },
                         set: { env.configModel.set(entry.key, .integer(Int($0))) }
                     ), in: Double(range.lowerBound)...Double(range.upperBound), step: 1)
-                    Text(currentInt(range: range)).font(.caption.monospacedDigit()).frame(width: 32)
+                    .frame(width: 90)
+                    ValueChip(text: currentInt(range: range), isDirty: env.configModel.dirtyKeys.contains(entry.key))
                 }
             case .double(let range):
-                HStack {
+                HStack(spacing: 10) {
                     Slider(value: Binding(
                         get: {
                             if case .double(let d) = env.configModel.values[entry.key] { return d }
@@ -30,10 +30,11 @@ struct SliderRow: View {
                         },
                         set: { env.configModel.set(entry.key, .double($0)) }
                     ), in: range, step: 0.01)
-                    Text(currentDouble(range: range)).font(.caption.monospacedDigit()).frame(width: 40)
+                    .frame(width: 90)
+                    ValueChip(text: currentDouble(range: range), isDirty: env.configModel.dirtyKeys.contains(entry.key))
                 }
             default:
-                Text("unsupported")
+                ValueChip(text: "unsupported")
             }
         }
     }

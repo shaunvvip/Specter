@@ -3,10 +3,9 @@ import SwiftUI
 struct ToggleRow: View {
     let entry: OptionEntry
     @Environment(AppEnvironment.self) private var env
-    @State private var expanded = false
 
     var body: some View {
-        OptionRowEnvelope(entry: entry, isExpanded: $expanded) {
+        OptionRowEnvelope(entry: entry) {
             Toggle("", isOn: Binding(
                 get: {
                     if case .bool(let b) = env.configModel.values[entry.key] { return b }
@@ -16,6 +15,8 @@ struct ToggleRow: View {
                 set: { env.configModel.set(entry.key, .bool($0)) }
             ))
             .labelsHidden()
+            .toggleStyle(.switch)
+            .controlSize(.small)
         }
     }
 }

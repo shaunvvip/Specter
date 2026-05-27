@@ -46,4 +46,39 @@ enum SettingCategory: String, CaseIterable, Identifiable, Hashable {
         case .unknown: return "questionmark.square"
         }
     }
+
+    /// Letter glyph (per design/specter-high-fidelity.html). Sidebar shows a
+    /// rounded color tile with one bold letter rather than a SF Symbol.
+    var glyph: String {
+        switch self {
+        case .appearance: return "A"
+        case .font: return "F"
+        case .window: return "W"
+        case .cursor: return "C"
+        case .mouse: return "M"
+        case .clipboard: return "B"
+        case .shellIntegration: return "S"
+        case .keybind: return "K"
+        case .macos: return "⌘"
+        case .advanced: return "•"
+        case .unknown: return "?"
+        }
+    }
+
+    /// One-line description shown under the title in the sidebar nav row.
+    var sidebarSubtitle: String {
+        switch self {
+        case .appearance: return "Theme, opacity, blur"
+        case .font: return "Family, size, ligature"
+        case .window: return "Padding, titlebar"
+        case .cursor: return "Shape and motion"
+        case .mouse: return "Selection, scroll"
+        case .clipboard: return "Paste protection"
+        case .shellIntegration: return "Integration mode"
+        case .keybind: return "Read-only in v1"
+        case .macos: return "Native chrome, alt key"
+        case .advanced: return "Power-user options"
+        case .unknown: return "Preserved verbatim"
+        }
+    }
 }
