@@ -38,7 +38,6 @@ struct InspectorPane: View {
         .padding(.horizontal, 28).padding(.vertical, 30)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Palette.inspectorBg)
-        .colorScheme(.light)
     }
 
     private var headerTitle: String {

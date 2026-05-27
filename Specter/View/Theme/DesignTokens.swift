@@ -32,25 +32,25 @@ enum Palette {
     static let red    = Color(hex: 0xff7676)
     static let purple = Color(hex: 0xb99cff)
 
-    // --- Inspector light surface ---
-    static let inspectorBg     = Color(hex: 0xf6f7f9)
-    static let inspectorSurface = Color.white
-    static let inspectorBorder = Color(hex: 0xe4e7ec)
-    static let inspectorText   = Color(hex: 0x111827)
-    static let inspectorMuted  = Color(hex: 0x667085)
-    static let inspectorLabel  = Color(hex: 0x8a94a6)
+    // --- Inspector (dark surface, matches global theme) ---
+    static let inspectorBg     = Color(hex: 0x0e1117)
+    static let inspectorSurface = Color(hex: 0x171b24)
+    static let inspectorBorder = Color.white.opacity(0.06)
+    static let inspectorText   = Color(hex: 0xf7fafc)
+    static let inspectorMuted  = Color(hex: 0x93a1b7)
+    static let inspectorLabel  = Color(hex: 0x697386)
 
-    // Inspector "active" highlight (selected/dirty row)
-    static let inspectorActiveBg     = Color(hex: 0xeef6ff)
-    static let inspectorActiveBorder = Color(hex: 0x93c5fd)
-    static let inspectorActiveText   = Color(hex: 0x1d4ed8)
-    static let inspectorActiveChipBg = Color(hex: 0xdbeafe)
+    // Inspector "active" highlight (dirty row)
+    static let inspectorActiveBg     = Color(hex: 0x182b42)
+    static let inspectorActiveBorder = Color(hex: 0x7dd3fc).opacity(0.34)
+    static let inspectorActiveText   = Color(hex: 0x7dd3fc)
+    static let inspectorActiveChipBg = Color(hex: 0x0b3553)
 
     // Inspector value chip default
-    static let inspectorChipBg   = Color(hex: 0xf3f4f6)
-    static let inspectorChipText = Color(hex: 0x374151)
-    static let inspectorActionBg = Color(hex: 0xe0f2fe)
-    static let inspectorActionText = Color(hex: 0x0369a1)
+    static let inspectorChipBg   = Color(hex: 0x202632)
+    static let inspectorChipText = Color(hex: 0xa8b3c5)
+    static let inspectorActionBg = Color(hex: 0x0b3553)
+    static let inspectorActionText = Color(hex: 0x7dd3fc)
 
     // Status dot
     static let statusDot = Color(hex: 0xf59e0b)
