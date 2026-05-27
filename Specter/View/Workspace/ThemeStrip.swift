@@ -2,24 +2,45 @@ import SwiftUI
 
 /// The 4-up "featured themes" swatch row above the live preview.
 ///
-/// Each swatch shows the theme's background as the tile color, plus a small
-/// accent bar in a representative palette color. Clicking applies the theme.
+/// Each swatch shows the theme's actual background as the tile color. Names are
+/// matched against `env.availableThemes` so we never try to apply a theme that
+/// isn't installed.
 struct ThemeStrip: View {
     @Environment(AppEnvironment.self) private var env
+    let onOpenAllThemes: () -> Void
 
-    private struct FeaturedTheme {
-        let name: String       // Theme name as Ghostty knows it
-        let displayName: String
-        let background: UInt32
-        let accent: UInt32
+    /// Featured candidate names + their representative accent colors. We pick
+    /// the first 4 that actually exist in availableThemes.
+    private static let candidates: [(name: String, accent: UInt32)] = [
+        ("TokyoNight Storm",   0x7aa2f7),
+        ("Catppuccin Mocha",   0xcba6f7),
+        ("Gruvbox Dark",       0xfabd2f),
+        ("Nord",               0x88c0d0),
+        ("Dracula",            0xff79c6),
+        ("Solarized Dark",     0xb58900),
+        ("One Half Dark",      0x61afef),
+        ("Ayu Dark",           0xffb454),
+    ]
+
+    private struct Featured: Identifiable {
+        var id: String { name }
+        let name: String
+        let accent: Color
     }
 
-    private let featured: [FeaturedTheme] = [
-        FeaturedTheme(name: "TokyoNight Storm", displayName: "Tokyo Night", background: 0x1a1b26, accent: 0x7aa2f7),
-        FeaturedTheme(name: "Catppuccin Mocha", displayName: "Catppuccin", background: 0x1e1e2e, accent: 0xcba6f7),
-        FeaturedTheme(name: "Gruvbox Dark", displayName: "Gruvbox", background: 0x1d2021, accent: 0xfabd2f),
-        FeaturedTheme(name: "Nord", displayName: "Nord", background: 0x2e3440, accent: 0x88c0d0),
-    ]
+    /// Pick the first 4 themes from `candidates` that match an installed theme
+    /// (case-insensitive lookup against availableThemes).
+    private var featured: [Featured] {
+        let installed = Set(env.availableThemes.map { $0.lowercased() })
+        var picked: [Featured] = []
+        for (name, accent) in Self.candidates {
+            if installed.contains(name.lowercased()) {
+                picked.append(Featured(name: name, accent: Color(hex: accent)))
+                if picked.count == 4 { break }
+            }
+        }
+        return picked
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
@@ -32,39 +53,45 @@ struct ThemeStrip: View {
                     Text("\(featured.count) featured picks")
                         .font(.system(size: 12))
                         .foregroundStyle(Color(hex: 0x8490a3))
-                    Text("All themes  \u{2192}")
-                        .font(.system(size: 11, weight: .heavy))
-                        .foregroundStyle(Color(hex: 0xbdeeff))
-                        .padding(.horizontal, 10).padding(.vertical, 4)
-                        .background(
-                            Capsule().fill(Palette.blue.opacity(0.10))
-                        )
-                        .overlay(
-                            Capsule().stroke(Palette.blueHi.opacity(0.24), lineWidth: 1)
-                        )
+                    Button(action: onOpenAllThemes) {
+                        Text("All themes  \u{2192}")
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundStyle(Color(hex: 0xbdeeff))
+                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .background(Capsule().fill(Palette.blue.opacity(0.10)))
+                            .overlay(Capsule().stroke(Palette.blueHi.opacity(0.24), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
 
-            HStack(spacing: 14) {
-                ForEach(featured, id: \.name) { theme in
-                    swatch(theme)
+            if featured.isEmpty {
+                emptyState
+            } else {
+                HStack(spacing: 14) {
+                    ForEach(featured) { theme in
+                        swatch(theme)
+                    }
                 }
             }
         }
         .padding(.horizontal, 18).padding(.vertical, 15)
-        .background(
-            RoundedRectangle(cornerRadius: 16).fill(Color(hex: 0x141820))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16).stroke(Palette.line, lineWidth: 1)
-        )
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color(hex: 0x141820)))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Palette.line, lineWidth: 1))
     }
 
-    private func swatch(_ theme: FeaturedTheme) -> some View {
-        let current: String = {
-            if case .string(let s) = env.configModel.values["theme"] { return s }
-            return ""
-        }()
+    private var emptyState: some View {
+        Text(env.ghostyBinaryFound
+             ? "Loading themes…"
+             : "Install Ghostty to load theme list")
+            .font(.system(size: 12))
+            .foregroundStyle(Color(hex: 0x8490a3))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 8)
+    }
+
+    private func swatch(_ theme: Featured) -> some View {
+        let current = env.configModel.string(for: "theme")
         let isSelected = current == theme.name
 
         return Button {
@@ -73,18 +100,17 @@ struct ThemeStrip: View {
         } label: {
             HStack(spacing: 10) {
                 RoundedRectangle(cornerRadius: 99)
-                    .fill(Color(hex: theme.accent))
+                    .fill(theme.accent)
                     .frame(width: 34, height: 6)
-                Text(theme.displayName)
+                Text(theme.name)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Color(hex: 0xe5edf7))
+                    .lineLimit(1)
                 Spacer()
             }
             .padding(.horizontal, 12)
             .frame(height: 36)
-            .background(
-                RoundedRectangle(cornerRadius: 10).fill(Color(hex: theme.background))
-            )
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color(hex: 0x1a1c24)))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(isSelected ? Palette.blueHi : Color.white.opacity(0.10),

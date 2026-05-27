@@ -36,14 +36,14 @@ struct SliderRow: View {
     }
 
     private func currentInt(range: ClosedRange<Int>) -> Int {
-        if case .integer(let i) = env.configModel.values[entry.key] { return i }
-        if case .integer(let i) = entry.defaultValue { return i }
-        return range.lowerBound
+        var def = range.lowerBound
+        if case .integer(let i) = entry.defaultValue { def = i }
+        return env.configModel.integer(for: entry.key, default: def)
     }
 
     private func currentDouble(range: ClosedRange<Double>) -> Double {
-        if case .double(let d) = env.configModel.values[entry.key] { return d }
-        if case .double(let d) = entry.defaultValue { return d }
-        return range.lowerBound
+        var def = range.lowerBound
+        if case .double(let d) = entry.defaultValue { def = d }
+        return env.configModel.double(for: entry.key, default: def)
     }
 }

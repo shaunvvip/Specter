@@ -4,10 +4,10 @@ struct InspectorPane: View {
     @Environment(AppEnvironment.self) private var env
     let category: SettingCategory
     @Binding var searchQuery: String
+    @Binding var flashedKey: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
             VStack(alignment: .leading, spacing: 8) {
                 Text(headerTitle)
                     .font(.system(size: 24, weight: .heavy))
@@ -22,15 +22,28 @@ struct InspectorPane: View {
             StatusCard()
                 .padding(.bottom, 6)
 
-            ScrollView(showsIndicators: false) {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    if filteredEntries.isEmpty {
-                        emptyState
-                    } else {
-                        SectionLabel(title: sectionLabelText)
-                        ForEach(filteredEntries) { entry in
-                            rowView(for: entry)
+            ScrollViewReader { proxy in
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(alignment: .leading, spacing: 12) {
+                        if filteredEntries.isEmpty {
+                            emptyState
+                        } else {
+                            SectionLabel(title: sectionLabelText)
+                            ForEach(filteredEntries) { entry in
+                                rowView(for: entry)
+                                    .id(entry.key)
+                            }
                         }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .onChange(of: flashedKey) { _, newValue in
+                    guard let key = newValue else { return }
+                    withAnimation {
+                        proxy.scrollTo(key, anchor: .center)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        flashedKey = nil
                     }
                 }
             }
@@ -81,14 +94,22 @@ struct InspectorPane: View {
 
     @ViewBuilder
     private func rowView(for entry: OptionEntry) -> some View {
-        switch entry.type {
-        case .bool:                          ToggleRow(entry: entry)
-        case .integer, .double:              SliderRow(entry: entry)
-        case .enumeration:                   EnumRow(entry: entry)
-        case .theme:                         ThemeRow(entry: entry)
-        case .font:                          FontRow(entry: entry)
-        case .string, .color, .keybind, .opaque:
-                                             StringRow(entry: entry)
+        let isFlashed = flashedKey == entry.key
+        Group {
+            switch entry.type {
+            case .bool:                          ToggleRow(entry: entry)
+            case .integer, .double:              SliderRow(entry: entry)
+            case .enumeration:                   EnumRow(entry: entry)
+            case .theme:                         ThemeRow(entry: entry)
+            case .font:                          FontRow(entry: entry)
+            case .string, .color, .keybind, .opaque:
+                                                 StringRow(entry: entry)
+            }
         }
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Palette.blueHi.opacity(isFlashed ? 0.9 : 0), lineWidth: 2)
+                .animation(.easeOut(duration: 0.4), value: isFlashed)
+        )
     }
 }

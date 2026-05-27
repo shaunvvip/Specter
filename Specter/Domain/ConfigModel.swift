@@ -43,4 +43,29 @@ final class ConfigModel {
     func appliedValue(for key: String) -> ConfigValue? {
         applied[key]
     }
+
+    // MARK: - Typed accessors
+    // Avoid repeating `if case .string(let s) = ...` in every OptionRow.
+    // Falls back to the OptionEntry default when the key isn't set, then to
+    // the caller-provided default.
+
+    func string(for key: String, default def: String = "") -> String {
+        if case .string(let s) = values[key] { return s }
+        return def
+    }
+
+    func integer(for key: String, default def: Int = 0) -> Int {
+        if case .integer(let i) = values[key] { return i }
+        return def
+    }
+
+    func double(for key: String, default def: Double = 0) -> Double {
+        if case .double(let d) = values[key] { return d }
+        return def
+    }
+
+    func bool(for key: String, default def: Bool = false) -> Bool {
+        if case .bool(let b) = values[key] { return b }
+        return def
+    }
 }

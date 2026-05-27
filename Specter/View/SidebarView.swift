@@ -1,12 +1,20 @@
 import SwiftUI
 
 struct SidebarView: View {
+    @Environment(AppEnvironment.self) private var env
     @Binding var selectedCategory: SettingCategory
 
-    private let categoriesInOrder: [SettingCategory] = [
+    /// Canonical category order. Only categories with at least one curated entry
+    /// in the registry appear in the sidebar — avoids showing dead nav rows.
+    private let categoryOrder: [SettingCategory] = [
         .appearance, .font, .window, .cursor, .mouse,
         .shellIntegration, .keybind, .macos, .advanced
     ]
+
+    private var visibleCategories: [SettingCategory] {
+        let populated = Set(env.registry.curatedEntries.map(\.category))
+        return categoryOrder.filter { populated.contains($0) }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -18,7 +26,7 @@ struct SidebarView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 6) {
-                    ForEach(categoriesInOrder) { cat in
+                    ForEach(visibleCategories) { cat in
                         navRow(cat)
                     }
                 }
@@ -26,11 +34,18 @@ struct SidebarView: View {
             }
 
             Spacer(minLength: 0)
-            safetyCard
-                .padding(8)
+            safetyCard.padding(8)
         }
         .frame(maxHeight: .infinity)
         .background(Palette.sidebarBg)
+        .onAppear {
+            // If the previously-selected category is no longer populated
+            // (e.g. registry data changed), drop selection to the first one.
+            if !visibleCategories.contains(selectedCategory),
+               let first = visibleCategories.first {
+                selectedCategory = first
+            }
+        }
     }
 
     private func navRow(_ cat: SettingCategory) -> some View {
@@ -88,11 +103,7 @@ struct SidebarView: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14).fill(Color(hex: 0x151922))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14).stroke(Palette.line, lineWidth: 1)
-        )
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color(hex: 0x151922)))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.line, lineWidth: 1))
     }
 }

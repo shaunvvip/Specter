@@ -1,85 +1,99 @@
 import SwiftUI
 
-/// Sub-page shown before writing to disk. Matches the `.apply-card` block in
-/// design/specter-high-fidelity.html — backup badge + 3 numbered steps + diff
-/// preview + Cancel / Apply now buttons.
+/// Sub-page shown before writing to disk. Dark theme matches global app palette.
+/// Layout matches the `.apply-card` block in design/specter-high-fidelity.html:
+/// header + auto-backup chip + 3 numbered steps + diff + Cancel/Apply.
 struct ApplyConfirmationSheet: View {
     @Environment(AppEnvironment.self) private var env
     @Binding var isPresented: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            steps
-            diff
-            actions
+            ApplyHeader()
+            ApplySteps()
+            ApplyDiff()
+            ApplyActions(isPresented: $isPresented)
         }
         .frame(width: 560)
-        .background(Color(hex: 0xf7f8fa))
+        .background(Palette.panel)
         .clipShape(RoundedRectangle(cornerRadius: 22))
-        .colorScheme(.light)
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Palette.lineStrong, lineWidth: 1))
     }
+}
 
-    private var header: some View {
+// MARK: - Header
+
+private struct ApplyHeader: View {
+    @Environment(AppEnvironment.self) private var env
+
+    var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text("Ready to apply \(env.configModel.dirtyKeys.count) changes?")
                     .font(.system(size: 18, weight: .heavy))
-                    .foregroundStyle(Color(hex: 0x101828))
+                    .foregroundStyle(Palette.text)
                 Text("Click Apply now to write to ~/.config/ghostty/config")
                     .font(.system(size: 12))
-                    .foregroundStyle(Color(hex: 0x667085))
+                    .foregroundStyle(Palette.muted)
             }
             Spacer()
-            Text("Backup ready")
-                .font(.system(size: 12, weight: .heavy))
-                .foregroundStyle(Color(hex: 0x067647))
-                .padding(.horizontal, 13).padding(.vertical, 8)
-                .background(
-                    Capsule().fill(Color(hex: 0xecfdf3))
-                )
-                .overlay(
-                    Capsule().stroke(Color(hex: 0xabefc6), lineWidth: 1)
-                )
+            Text("Auto-backup enabled")
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundStyle(Palette.green)
+                .padding(.horizontal, 11).padding(.vertical, 7)
+                .background(Capsule().fill(Palette.green.opacity(0.12)))
+                .overlay(Capsule().stroke(Palette.green.opacity(0.35), lineWidth: 1))
         }
-        .padding(.horizontal, 30)
+        .padding(.horizontal, 26)
         .frame(height: 76)
-        .background(Color.white)
-        .overlay(Rectangle().frame(height: 1).foregroundStyle(Color(hex: 0xe4e7ec)), alignment: .bottom)
+        .background(Palette.panel2)
+        .overlay(Rectangle().frame(height: 1).foregroundStyle(Palette.line), alignment: .bottom)
     }
+}
 
-    private var steps: some View {
-        VStack(alignment: .leading, spacing: 18) {
+// MARK: - Steps
+
+private struct ApplySteps: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
             step(num: 1, title: "Create timestamped backup",
-                 desc: "Stored under ~/Library/Application Support/Specter/Backups.")
+                 desc: "Saved under ~/Library/Application Support/Specter/Backups.")
             step(num: 2, title: "Patch only dirty keys",
                  desc: "Preserve comments, blank lines, unknown options byte-for-byte.")
             step(num: 3, title: "Request Ghostty reload",
                  desc: "AppleScript best-effort; falls back to a toast if denied.")
         }
-        .padding(30)
+        .padding(26)
     }
 
     private func step(num: Int, title: String, desc: String) -> some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .top, spacing: 14) {
             Text("\(num)")
-                .font(.system(size: 14, weight: .heavy))
-                .foregroundStyle(Color(hex: 0x1d4ed8))
-                .frame(width: 32, height: 32)
-                .background(Circle().fill(Color(hex: 0xdbeafe)))
-            VStack(alignment: .leading, spacing: 4) {
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(Palette.cyan)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(Palette.cyan.opacity(0.14)))
+                .overlay(Circle().stroke(Palette.cyan.opacity(0.32), lineWidth: 1))
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color(hex: 0x101828))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.text)
                 Text(desc)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color(hex: 0x667085))
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.muted)
+                    .lineSpacing(2)
             }
         }
     }
+}
 
-    private var diff: some View {
-        VStack(alignment: .leading, spacing: 0) {
+// MARK: - Diff
+
+private struct ApplyDiff: View {
+    @Environment(AppEnvironment.self) private var env
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
             ForEach(diffLines, id: \.self) { line in
                 Text(line)
                     .font(.system(size: 12, design: .monospaced))
@@ -87,11 +101,10 @@ struct ApplyConfirmationSheet: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 14).fill(Color(hex: 0x111827))
-        )
-        .padding(.horizontal, 30).padding(.bottom, 22)
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0x0d1019)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.line, lineWidth: 1))
+        .padding(.horizontal, 26).padding(.bottom, 20)
     }
 
     private var diffLines: [String] {
@@ -114,52 +127,65 @@ struct ApplyConfirmationSheet: View {
     }
 
     private func diffColor(for line: String) -> Color {
-        if line.hasPrefix("- ") { return Color(hex: 0xef4444) }
-        if line.hasPrefix("+ ") { return Color(hex: 0x22c55e) }
-        return Color(hex: 0xa1a1aa)
+        if line.hasPrefix("- ") { return Palette.red }
+        if line.hasPrefix("+ ") { return Palette.green }
+        return Palette.muted
     }
+}
 
-    private var actions: some View {
+// MARK: - Actions
+
+private struct ApplyActions: View {
+    @Environment(AppEnvironment.self) private var env
+    @Binding var isPresented: Bool
+
+    var body: some View {
         HStack {
             Spacer()
-            Button {
+            HoverButton {
                 isPresented = false
-            } label: {
+            } label: { hovering in
                 Text("Cancel")
                     .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(Color(hex: 0x344054))
-                    .padding(.horizontal, 18).frame(height: 38)
-                    .background(
-                        RoundedRectangle(cornerRadius: 9).fill(Color.white)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 9).stroke(Color(hex: 0xd0d5dd), lineWidth: 1)
-                    )
+                    .foregroundStyle(Palette.soft)
+                    .padding(.horizontal, 18).frame(height: 36)
+                    .background(RoundedRectangle(cornerRadius: 9)
+                        .fill(hovering ? Palette.panel3.opacity(0.85) : Palette.panel3))
+                    .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.line, lineWidth: 1))
             }
-            .buttonStyle(.plain)
             .keyboardShortcut(.cancelAction)
 
-            Button {
+            HoverButton {
                 Task {
                     await env.apply()
-                    isPresented = false
+                    if env.applyError == nil { isPresented = false }
                 }
-            } label: {
-                Text(env.isApplying ? "Applying…" : "Apply now")
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 18).frame(height: 38)
-                    .background(
-                        LinearGradient(colors: [Color(hex: 0x4fa5ff), Color(hex: 0x2563eb)],
-                                       startPoint: .top, endPoint: .bottom)
+            } label: { hovering in
+                HStack(spacing: 6) {
+                    if env.isApplying {
+                        ProgressView().controlSize(.small).tint(.white)
+                        Text("Applying…")
+                    } else {
+                        Text("Apply now")
+                    }
+                }
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 18).frame(height: 36)
+                .background(
+                    LinearGradient(
+                        colors: hovering
+                            ? [Color(hex: 0x66b3ff), Color(hex: 0x3a7af0)]
+                            : [Color(hex: 0x4fa5ff), Color(hex: 0x2868e6)],
+                        startPoint: .top, endPoint: .bottom
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 9))
-                    .shadow(color: Color(hex: 0x2563eb).opacity(0.32), radius: 8, y: 4)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+                .shadow(color: Palette.blue.opacity(0.32), radius: 8, y: 3)
             }
-            .buttonStyle(.plain)
             .disabled(env.isApplying)
             .keyboardShortcut(.defaultAction)
         }
-        .padding(.horizontal, 30).padding(.bottom, 30)
+        .padding(.horizontal, 26).padding(.bottom, 24)
     }
 }
