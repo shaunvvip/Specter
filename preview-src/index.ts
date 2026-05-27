@@ -5,14 +5,22 @@ const termEl = document.getElementById("term") as HTMLElement;
 const wrapEl = document.getElementById("term-wrap") as HTMLElement;
 
 const term = new Terminal({
-  fontFamily: "JetBrains Mono",
+  // ui-monospace = macOS system monospaced (SF Mono); always available,
+  // never falls back to a CJK font. Keep "JetBrains Mono" as the preferred
+  // option for users who have installed it (the picker writes the chosen name
+  // back here via applyPreview).
+  fontFamily: '"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace',
   fontSize: 14,
+  letterSpacing: 0,
+  lineHeight: 1.2,
   cursorBlink: true,
   cursorStyle: "block",
   allowTransparency: true,
+  drawBoldTextInBrightColors: true,
   theme: defaultTheme(),
-  cols: 80,
-  rows: 22,
+  cols: 92,
+  rows: 24,
+  scrollback: 0,
 });
 
 term.open(termEl);
@@ -43,7 +51,10 @@ interface XtermOptions {
 }
 
 (window as any).applyPreview = (opts: XtermOptions) => {
-  term.options.fontFamily = opts.fontFamily || "JetBrains Mono";
+  // The picker writes the chosen font as just "Family Name"; preserve our
+  // ui-monospace fallback chain so an uninstalled name doesn't break rendering.
+  const requested = opts.fontFamily?.trim() || "JetBrains Mono";
+  term.options.fontFamily = `"${requested}", ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
   term.options.fontSize = opts.fontSize || 14;
   term.options.cursorBlink = opts.cursorBlink;
   term.options.cursorStyle = opts.cursorStyle;
@@ -65,35 +76,50 @@ function applyOpacity(hex: string, opacity: number): string {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
-// Static demo: written once, never looped or cleared.
-// Reveals palette colors (0-15) + foreground + background so every theme change shows visible delta.
+// ANSI helpers — keeps the demo source readable.
+const reset = "\x1b[0m";
+const dim   = "\x1b[2m";
+const bold  = "\x1b[1m";
+const fg = {
+  red:    "\x1b[31m",
+  green:  "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue:   "\x1b[34m",
+  magenta:"\x1b[35m",
+  cyan:   "\x1b[36m",
+  white:  "\x1b[37m",
+  brightBlack: "\x1b[90m",
+  brightGreen: "\x1b[92m",
+};
+
+// Static demo content — a realistic shell session a developer would recognize.
+// Drawn once at init; no animation, no clear, no scroll.
+const prompt = `${bold}${fg.green}specter${reset}${dim}:${reset}${fg.blue}~/code/Specter${reset}${dim} (${reset}${fg.magenta}main${dim})${reset} $ `;
+
 const lines: string[] = [
-  "\x1b[36m~ $\x1b[0m neofetch",
-  "",
-  "                          \x1b[1m\x1b[34mOS\x1b[0m       macOS Sequoia",
-  "       \x1b[33m///\x1b[36m////    \x1b[0m       \x1b[1m\x1b[34mHost\x1b[0m     MacBook Pro M3",
-  "      \x1b[33m/////\x1b[36m///\x1b[31m/\x1b[0m       \x1b[1m\x1b[34mShell\x1b[0m    zsh 5.9",
-  "     \x1b[33m//\x1b[31m///////\x1b[35m/\x1b[0m       \x1b[1m\x1b[34mEditor\x1b[0m   nvim 0.10",
-  "    \x1b[31m/////////\x1b[35m///\x1b[0m       \x1b[1m\x1b[34mTerm\x1b[0m     Ghostty",
-  "     \x1b[31m///\x1b[35m///////\x1b[34m/\x1b[0m       \x1b[1m\x1b[34mTheme\x1b[0m    Specter Preview",
-  "      \x1b[35m/////\x1b[34m///\x1b[36m/\x1b[0m",
-  "       \x1b[34m///\x1b[36m////\x1b[0m         \x1b[40m   \x1b[41m   \x1b[42m   \x1b[43m   \x1b[44m   \x1b[45m   \x1b[46m   \x1b[47m   \x1b[0m",
-  "                          \x1b[100m   \x1b[101m   \x1b[102m   \x1b[103m   \x1b[104m   \x1b[105m   \x1b[106m   \x1b[107m   \x1b[0m",
-  "",
-  "\x1b[36m~ $\x1b[0m \x1b[32mgit status\x1b[0m",
-  "On branch \x1b[32mmain\x1b[0m",
-  "Changes to be committed:",
-  "  \x1b[32mmodified:\x1b[0m   src/App.tsx",
-  "  \x1b[31mdeleted:\x1b[0m    legacy/util.js",
-  "  \x1b[33mrenamed:\x1b[0m    docs/old.md -> docs/v2.md",
-  "",
-  "\x1b[36m~ $\x1b[0m \x1b[34mls -lah\x1b[0m",
-  "\x1b[2mdrwxr-xr-x  10 user  staff   320B  .\x1b[0m",
-  "-rw-r--r--   1 user  staff   1.2K  \x1b[34mREADME.md\x1b[0m",
-  "-rw-r--r--   1 user  staff   3.8K  \x1b[34mpackage.json\x1b[0m",
-  "drwxr-xr-x   8 user  staff   256B  \x1b[34msrc/\x1b[0m",
-  "",
-  "\x1b[36m~ $\x1b[0m \x1b[7m▎\x1b[0m",
+  `${prompt}${fg.cyan}git${reset} status`,
+  `On branch ${fg.green}main${reset}`,
+  `Your branch is ${dim}up to date with${reset} '${fg.green}origin/main${reset}'.`,
+  ``,
+  `Changes not staged for commit:`,
+  `  ${fg.red}modified:${reset}   Specter/View/PreviewPane.swift`,
+  `  ${fg.red}modified:${reset}   Specter/View/Workspace/PreviewHalo.swift`,
+  `  ${fg.red}modified:${reset}   preview-src/index.ts`,
+  ``,
+  `${prompt}${fg.cyan}git${reset} diff ${dim}preview-src/index.ts${reset}`,
+  `${dim}@@ -8,7 +8,7 @@ const term = new Terminal({${reset}`,
+  `${fg.red}-  fontFamily: "JetBrains Mono",${reset}`,
+  `${fg.green}+  fontFamily: '"JetBrains Mono", ui-monospace, monospace',${reset}`,
+  `${fg.green}+  letterSpacing: 0,${reset}`,
+  ``,
+  `${prompt}${fg.cyan}ls${reset} -lah`,
+  `${dim}total 64K${reset}`,
+  `drwxr-xr-x  ${fg.yellow}10${reset} shaun  staff  ${fg.brightGreen}320B${reset}  .`,
+  `-rw-r--r--  ${fg.yellow} 1${reset} shaun  staff  ${fg.brightGreen}1.2K${reset}  ${fg.blue}README.md${reset}`,
+  `-rw-r--r--  ${fg.yellow} 1${reset} shaun  staff  ${fg.brightGreen}3.8K${reset}  ${fg.blue}project.yml${reset}`,
+  `drwxr-xr-x  ${fg.yellow} 8${reset} shaun  staff  ${fg.brightGreen}256B${reset}  ${fg.blue}Specter${reset}`,
+  ``,
+  `${prompt}`,
 ];
 
 for (const line of lines) {
