@@ -4,23 +4,23 @@ struct ThemeRow: View {
     let entry: OptionEntry
     @Environment(AppEnvironment.self) private var env
 
-    private var current: String {
-        if case .string(let s) = env.configModel.values[entry.key] { return s }
-        return ""
-    }
-
     var body: some View {
         OptionRowEnvelope(entry: entry) {
+            let current = env.configModel.string(for: entry.key)
             Menu {
-                Button(current.isEmpty ? "✓ (default)" : "(default)") {
+                Button {
                     env.configModel.set(entry.key, .string(""))
                     Task { await env.reloadCurrentThemeColors() }
+                } label: {
+                    Label("(default)", systemImage: current.isEmpty ? "checkmark" : "")
                 }
                 Divider()
                 ForEach(env.availableThemes, id: \.self) { name in
-                    Button(name == current ? "✓ \(name)" : name) {
+                    Button {
                         env.configModel.set(entry.key, .string(name))
                         Task { await env.reloadCurrentThemeColors() }
+                    } label: {
+                        Label(name, systemImage: name == current ? "checkmark" : "")
                     }
                 }
             } label: {

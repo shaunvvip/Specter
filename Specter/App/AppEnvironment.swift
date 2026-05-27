@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import Observation
 
 @MainActor
@@ -13,17 +14,25 @@ final class AppEnvironment {
     var registry: OptionRegistry = OptionRegistry(entries: [], curated: [])
     var configModel: ConfigModel = ConfigModel(initialValues: [:])
     private var lastReadTokens: [ConfigToken] = []
+    private var lastReadMtime: Date = .distantPast
+    private var fileWatcher: FileWatcher?
+    private var watcherSubscription: AnyCancellable?
 
     var loadError: String?
     var applyError: String?
     var lastReloadResult: ReloadResult?
     var isApplying: Bool = false
     var ghostyBinaryFound: Bool = false
+    /// True when FileWatcher detected an external edit to ~/.config/ghostty/config
+    /// after our last read. UI surfaces a banner offering to reload.
+    var externalChangeDetected: Bool = false
     // Eagerly-loaded so theme/font Pickers don't pop empty on first open.
     var availableThemes: [String] = []
     var availableFonts: [String] = []
     // Live theme colors for the current `theme` value, used by PreviewBridge.
     var currentThemeColors: XtermTheme = .mocha
+
+    private let configURL: URL
 
     static var defaultConfigURL: URL {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -42,6 +51,7 @@ final class AppEnvironment {
     init(configURL: URL = AppEnvironment.defaultConfigURL,
          backupDir: URL = AppEnvironment.defaultBackupDir,
          ghostyBinary: URL? = nil) {
+        self.configURL = configURL
         self.configFileService = ConfigFileService(configURL: configURL)
         self.backupService = BackupService(configURL: configURL, backupDir: backupDir)
         let resolved = ghostyBinary ?? GhostyCLI.resolvedBinary()
@@ -58,6 +68,7 @@ final class AppEnvironment {
             let parsed = try await configFileService.read()
             self.configModel = ConfigModel(initialValues: parsed.values)
             self.lastReadTokens = parsed.tokens
+            self.lastReadMtime = parsed.mtime
         } catch {
             self.loadError = "Failed to read config: \(error.localizedDescription)"
         }
@@ -70,14 +81,14 @@ final class AppEnvironment {
             self.availableFonts = f
         }
         await reloadCurrentThemeColors()
+        startWatchingConfigFile()
     }
 
     /// Re-read the theme file matching `configModel.values["theme"]` and update
     /// `currentThemeColors` so PreviewPane redraws with the right palette.
-    /// Call this on bootstrap, and whenever `theme` changes.
+    /// Call this on bootstrap, on theme change, and on reset.
     func reloadCurrentThemeColors() async {
-        let rawTheme: String
-        if case .string(let s) = configModel.values["theme"] { rawTheme = s } else { rawTheme = "" }
+        let rawTheme = configModel.string(for: "theme")
         let themeName = PreviewBridge.parseThemeName(rawTheme)
         if let loaded = await themeLoader.load(themeName) {
             self.currentThemeColors = loaded
@@ -106,6 +117,8 @@ final class AppEnvironment {
             try await configFileService.write(dirtyValues: dirtyValues, originalTokens: parsed.tokens)
             self.configModel.commit()
             self.lastReadTokens = parsed.tokens
+            self.lastReadMtime = (try? await configFileService.read().mtime) ?? Date()
+            self.externalChangeDetected = false  // our write isn't an external change
         } catch {
             self.applyError = "Apply failed: \(error.localizedDescription)"
             return
@@ -117,5 +130,45 @@ final class AppEnvironment {
         for key in configModel.dirtyKeys {
             configModel.reset(key)
         }
+        // Theme value may have reverted — refresh preview colors.
+        Task { await reloadCurrentThemeColors() }
+    }
+
+    /// Re-read the config from disk after an external change. Discards any
+    /// unsaved edits — caller should confirm.
+    func reloadFromDisk() async {
+        do {
+            let parsed = try await configFileService.read()
+            self.configModel = ConfigModel(initialValues: parsed.values)
+            self.lastReadTokens = parsed.tokens
+            self.lastReadMtime = parsed.mtime
+            self.externalChangeDetected = false
+            await reloadCurrentThemeColors()
+        } catch {
+            self.loadError = "Reload failed: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - External change detection
+
+    private func startWatchingConfigFile() {
+        guard FileManager.default.fileExists(atPath: configURL.path),
+              let watcher = FileWatcher(url: configURL) else { return }
+        self.fileWatcher = watcher
+        self.watcherSubscription = watcher.changeSubject
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                Task { @MainActor [weak self] in
+                    await self?.onConfigFileChangedExternally()
+                }
+            }
+    }
+
+    private func onConfigFileChangedExternally() async {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: configURL.path),
+              let mtime = attrs[.modificationDate] as? Date else { return }
+        // If our most recent write set lastReadMtime, ignore that event.
+        guard mtime > lastReadMtime else { return }
+        self.externalChangeDetected = true
     }
 }

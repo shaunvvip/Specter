@@ -46,7 +46,6 @@ struct OptionRowEnvelope<Content: View>: View {
                         lineWidth: 1)
         )
         .shadow(color: isDirty ? Palette.inspectorActiveBorder.opacity(0.16) : .clear, radius: 6)
-        .padding(.bottom, 12)
     }
 }
 

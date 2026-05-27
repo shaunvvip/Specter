@@ -4,8 +4,7 @@ struct EnumRow: View {
     let entry: OptionEntry
     @Environment(AppEnvironment.self) private var env
 
-    private var current: String {
-        if case .string(let s) = env.configModel.values[entry.key] { return s }
+    private var defaultStr: String {
         if case .string(let s) = entry.defaultValue { return s }
         return ""
     }
@@ -13,15 +12,18 @@ struct EnumRow: View {
     var body: some View {
         OptionRowEnvelope(entry: entry) {
             if case .enumeration(let cases) = entry.type {
+                let current = env.configModel.string(for: entry.key, default: defaultStr)
                 Menu {
                     ForEach(cases, id: \.self) { c in
-                        Button(c == current ? "✓ \(c)" : c) {
+                        Button {
                             env.configModel.set(entry.key, .string(c))
+                        } label: {
+                            Label(c, systemImage: c == current ? "checkmark" : "")
                         }
                     }
                 } label: {
                     ValueChip(
-                        text: current,
+                        text: current.isEmpty ? "—" : current,
                         isDirty: env.configModel.dirtyKeys.contains(entry.key)
                     )
                 }
