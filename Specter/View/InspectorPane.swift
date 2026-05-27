@@ -6,77 +6,72 @@ struct InspectorPane: View {
     @Binding var searchQuery: String
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-            ScrollView {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            VStack(alignment: .leading, spacing: 8) {
+                Text(headerTitle)
+                    .font(.system(size: 24, weight: .heavy))
+                    .foregroundStyle(Palette.inspectorText)
+                Text(headerSubtitle)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.inspectorMuted)
+                    .lineSpacing(2)
+            }
+            .padding(.bottom, 18)
+
+            StatusCard()
+                .padding(.bottom, 6)
+
+            ScrollView(showsIndicators: false) {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(filteredEntries) { entry in
-                        rowView(for: entry)
-                        Divider().opacity(0.25)
-                    }
                     if filteredEntries.isEmpty {
-                        Text(searchQuery.isEmpty ? "本分类暂无 curated 选项" : "没有匹配 \"\(searchQuery)\"")
-                            .foregroundStyle(.secondary)
-                            .font(.callout)
-                            .padding(.top, 40).frame(maxWidth: .infinity)
+                        emptyState
+                    } else {
+                        SectionLabel(title: sectionLabelText)
+                        ForEach(filteredEntries) { entry in
+                            rowView(for: entry)
+                        }
                     }
                 }
-                .padding(.horizontal, 16).padding(.vertical, 12)
             }
+        }
+        .padding(.horizontal, 28).padding(.vertical, 30)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Palette.inspectorBg)
+        .colorScheme(.light)
+    }
+
+    private var headerTitle: String {
+        searchQuery.isEmpty ? category.displayName : "Search results"
+    }
+
+    private var headerSubtitle: String {
+        searchQuery.isEmpty
+            ? "Curated settings with docs, constraints, and suggested defaults."
+            : "Matches across all \(env.registry.entries.count) Ghostty options."
+    }
+
+    private var sectionLabelText: String {
+        if !searchQuery.isEmpty { return "MATCHES" }
+        switch category {
+        case .appearance: return "VISUAL"
+        case .font: return "TYPOGRAPHY"
+        default: return category.displayName.uppercased()
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: searchQuery.isEmpty ? category.sfSymbol : "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                    .font(.callout)
-                Text(searchQuery.isEmpty ? category.displayName : "搜索结果")
-                    .font(.headline)
-                Spacer()
-                statusChip
-            }
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
-                TextField("在本分类内过滤…", text: $searchQuery)
-                    .textFieldStyle(.plain)
-                    .font(.callout)
-                if !searchQuery.isEmpty {
-                    Button {
-                        searchQuery = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 8).padding(.vertical, 5)
-            .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "tray")
+                .font(.system(size: 24))
+                .foregroundStyle(Palette.inspectorMuted)
+            Text(searchQuery.isEmpty ? "No curated options here yet" : "No matches for \"\(searchQuery)\"")
+                .font(.system(size: 13))
+                .foregroundStyle(Palette.inspectorMuted)
         }
-        .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 10)
-        .background(.bar)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 56)
     }
-
-    @ViewBuilder
-    private var statusChip: some View {
-        let count = env.configModel.dirtyKeys.count
-        if count > 0 {
-            HStack(spacing: 4) {
-                Circle().frame(width: 6, height: 6).foregroundStyle(.orange)
-                Text("\(count) 项未保存").font(.caption).foregroundStyle(.secondary)
-            }
-        } else {
-            Text("\(filteredEntries.count) 项").font(.caption).foregroundStyle(.secondary)
-        }
-    }
-
-    // MARK: - Data
 
     private var filteredEntries: [OptionEntry] {
         if searchQuery.isEmpty {

@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Specter High-Fidelity Design</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090b10;
+      --panel: #11141b;
+      --panel-2: #171b24;
+      --panel-3: #202632;
+      --line: rgba(255,255,255,.08);
+      --line-strong: rgba(255,255,255,.14);
+      --text: #f7fafc;
+      --muted: #93a1b7;
+      --soft: #c6d0df;
+      --blue: #4ea8ff;
+      --cyan: #73e4ff;
+      --green: #82e6aa;
+      --yellow: #f9c76b;
+      --red: #ff7676;
+      --purple: #b99cff;
+      --white-ui: #f6f7f9;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 1280px;
+      background:
+        radial-gradient(circle at 18% 0%, rgba(49,113,190,.24), transparent 30%),
+        radial-gradient(circle at 82% 12%, rgba(21,170,160,.14), transparent 28%),
+        linear-gradient(180deg, #0e1118 0%, var(--bg) 42%, #07080c 100%);
+      color: var(--text);
+    }
+
+    .board {
+      width: 1920px;
+      min-height: 1180px;
+      padding: 64px 72px 86px;
+      position: relative;
+    }
+
+    .board-header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 40px;
+      align-items: end;
+      margin-bottom: 52px;
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: 58px;
+      line-height: .95;
+      letter-spacing: 0;
+      font-weight: 820;
+    }
+
+    .lede {
+      width: 920px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.55;
+    }
+
+    .chips { display: flex; gap: 10px; margin-top: 24px; }
+
+    .chip {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.045);
+      color: var(--soft);
+      border-radius: 999px;
+      padding: 8px 13px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .chip.primary {
+      color: #dff7ff;
+      border-color: rgba(115,228,255,.35);
+      background: rgba(76,166,255,.14);
+    }
+
+    .note {
+      width: 390px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      border-radius: 18px;
+      padding: 18px 20px;
+      color: #aeb9ca;
+      font-size: 14px;
+      line-height: 1.5;
+      box-shadow: 0 24px 80px rgba(0,0,0,.22);
+    }
+
+    .stage {
+      display: grid;
+      grid-template-columns: 1180px 520px;
+      gap: 48px;
+      align-items: start;
+    }
+
+    .window {
+      width: 1180px;
+      height: 760px;
+      overflow: hidden;
+      border-radius: 22px;
+      background: var(--panel);
+      border: 1px solid var(--line-strong);
+      box-shadow: 0 46px 120px rgba(0,0,0,.46), 0 0 0 1px rgba(255,255,255,.03) inset;
+    }
+
+    .titlebar {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 16px 0 18px;
+      background: #181c25;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .traffic { display: flex; gap: 8px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .red { background: #ff5f57; }
+    .amber { background: #febc2e; }
+    .green { background: #28c840; }
+
+    .app-name {
+      font-weight: 760;
+      color: #f8fafc;
+      margin-left: 6px;
+    }
+
+    .path {
+      font: 12px/1.2 "SF Mono", Menlo, ui-monospace, monospace;
+      color: #748094;
+      margin-right: auto;
+    }
+
+    .search {
+      width: 245px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #10131a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      color: #738197;
+      font-size: 12px;
+    }
+
+    .toolbar-btn {
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #202632;
+      color: #d7deea;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 13px;
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .toolbar-btn.apply {
+      border-color: transparent;
+      color: white;
+      background: linear-gradient(180deg, #4fa5ff, #2868e6);
+      box-shadow: 0 8px 22px rgba(60,130,246,.32);
+    }
+
+    .shell {
+      height: calc(100% - 56px);
+      display: grid;
+      grid-template-columns: 216px 1fr 342px;
+    }
+
+    .sidebar {
+      background: #101218;
+      border-right: 1px solid var(--line);
+      padding: 28px 14px;
+    }
+
+    .label {
+      color: #697386;
+      font-size: 10px;
+      letter-spacing: .08em;
+      font-weight: 820;
+      margin: 0 0 14px 10px;
+    }
+
+    .nav-item {
+      height: 54px;
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 0 12px;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      color: #cad3e2;
+    }
+
+    .nav-item.active {
+      color: #f8fafc;
+      background: linear-gradient(90deg, rgba(46,118,190,.34), rgba(47,69,95,.18));
+      border: 1px solid rgba(115,228,255,.24);
+    }
+
+    .glyph {
+      width: 23px;
+      height: 23px;
+      border-radius: 7px;
+      background: #2a303b;
+      display: grid;
+      place-items: center;
+      color: #8fa0b8;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .active .glyph {
+      background: #1e81c8;
+      color: white;
+      box-shadow: 0 0 20px rgba(82,190,255,.28);
+    }
+
+    .nav-title { font-size: 14px; font-weight: 760; }
+    .nav-sub { margin-top: 3px; font-size: 11px; color: #778399; }
+
+    .safety-card {
+      margin: 28px 4px 0;
+      padding: 14px;
+      border-radius: 14px;
+      background: #151922;
+      border: 1px solid var(--line);
+    }
+
+    .safety-card strong { display: block; font-size: 13px; margin-bottom: 7px; }
+    .safety-card p { margin: 0; color: #8995a8; font-size: 11px; line-height: 1.48; }
+
+    .workspace {
+      padding: 36px 38px;
+      background:
+        linear-gradient(180deg, rgba(22,30,45,.85), rgba(14,17,23,1) 36%),
+        #0e1117;
+    }
+
+    .eyebrow {
+      color: var(--cyan);
+      font-size: 11px;
+      letter-spacing: .09em;
+      font-weight: 820;
+      margin-bottom: 10px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 32px;
+      line-height: 1.12;
+      letter-spacing: 0;
+      font-weight: 820;
+    }
+
+    .subcopy {
+      margin: 11px 0 26px;
+      color: #8490a3;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .theme-strip {
+      height: 96px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #141820;
+      padding: 15px 18px;
+      margin-bottom: 26px;
+    }
+
+    .strip-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #dce4ef;
+      font-size: 13px;
+      font-weight: 760;
+      margin-bottom: 13px;
+    }
+
+    .theme-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #8490a3;
+      font-size: 12px;
+    }
+
+    .all-themes-link {
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(115,228,255,.24);
+      background: rgba(76,166,255,.10);
+      color: #bdeeff;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 820;
+      white-space: nowrap;
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .swatch {
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      color: #e5edf7;
+      font-size: 11px;
+      font-weight: 720;
+    }
+
+    .accent { width: 34px; height: 6px; border-radius: 99px; }
+
+    .terminal-wrap {
+      padding: 16px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(32,55,86,.68), rgba(19,25,37,.66));
+      box-shadow: 0 0 48px rgba(80,174,255,.12);
+    }
+
+    .terminal {
+      height: 364px;
+      overflow: hidden;
+      border-radius: 18px;
+      background: #15151f;
+      border: 1px solid rgba(125,211,252,.18);
+      box-shadow: 0 26px 80px rgba(0,0,0,.34);
+      font: 14px/1.9 "SF Mono", Menlo, ui-monospace, monospace;
+      color: #e5edf8;
+    }
+
+    .terminal-head {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #1d2030;
+      padding: 0 16px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+
+    .terminal-title {
+      margin-left: 14px;
+      color: #aab6c8;
+      font-size: 12px;
+    }
+
+    .live {
+      margin-left: auto;
+      border: 1px solid rgba(125,211,252,.24);
+      background: #0f172a;
+      color: #7dd3fc;
+      border-radius: 999px;
+      padding: 3px 11px;
+      font: 10px/1.4 Inter, sans-serif;
+      font-weight: 820;
+    }
+
+    .terminal-body { padding: 24px 28px; }
+    .cyan { color: #6ee7f9; }
+    .minus { color: #fca5a5; }
+    .plus { color: #86efac; }
+    .purple { color: #c4b5fd; }
+    .gold { color: #fbbf24; }
+
+    .rail {
+      margin-top: 16px;
+      height: 46px;
+      border: 1px solid var(--line);
+      background: #121722;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px 0 18px;
+      gap: 14px;
+    }
+
+    .rail span:first-child {
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .rail code {
+      color: #e2e8f0;
+      font-family: "SF Mono", Menlo, ui-monospace, monospace;
+      font-size: 12px;
+      margin-right: auto;
+    }
+
+    .rail button {
+      border: 0;
+      background: #2563eb;
+      color: white;
+      height: 30px;
+      border-radius: 8px;
+      padding: 0 16px;
+      font-weight: 800;
+    }
+
+    .inspector {
+      background: var(--white-ui);
+      color: #111827;
+      padding: 30px 28px;
+    }
+
+    .inspector h3 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.15;
+    }
+
+    .inspector .desc {
+      color: #667085;
+      font-size: 13px;
+      line-height: 1.45;
+      margin-bottom: 20px;
+    }
+
+    .status-card,
+    .option {
+      border: 1px solid #e4e7ec;
+      background: white;
+      border-radius: 14px;
+    }
+
+    .status-card {
+      height: 64px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .status-card strong { font-size: 14px; }
+    .status-card p { margin: 4px 0 0; color: #667085; font-size: 12px; }
+    .status-dot { width: 14px; height: 14px; border-radius: 99px; background: #f59e0b; }
+
+    .section-label {
+      margin: 22px 0 10px;
+      color: #8a94a6;
+      font-size: 10px;
+      letter-spacing: .08em;
+      font-weight: 900;
+    }
+
+    .option {
+      min-height: 78px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .option.active {
+      background: #eef6ff;
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 3px rgba(147,197,253,.16);
+    }
+
+    .key {
+      font: 13px/1.2 "SF Mono", Menlo, ui-monospace, monospace;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .help {
+      color: #697386;
+      font-size: 11px;
+      line-height: 1.42;
+    }
+
+    .value {
+      min-width: 78px;
+      height: 32px;
+      border-radius: 8px;
+      background: #f3f4f6;
+      display: grid;
+      place-items: center;
+      color: #374151;
+      font-size: 11px;
+      font-weight: 820;
+    }
+
+    .active .value { background: #dbeafe; color: #1d4ed8; }
+
+    .value.action {
+      min-width: 96px;
+      background: #e0f2fe;
+      color: #0369a1;
+      box-shadow: inset 0 0 0 1px rgba(14,165,233,.2);
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 32px;
+    }
+
+    .mini-title {
+      margin: 0 0 12px;
+      font-size: 24px;
+      font-weight: 820;
+    }
+
+    .mini-copy {
+      color: #93a1b7;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 18px;
+    }
+
+    .palette,
+    .apply-card {
+      border-radius: 22px;
+      border: 1px solid var(--line-strong);
+      box-shadow: 0 34px 90px rgba(0,0,0,.36);
+      overflow: hidden;
+    }
+
+    .palette {
+      background: #111318;
+      padding: 24px;
+    }
+
+    .palette-search {
+      height: 58px;
+      border-radius: 14px;
+      border: 1px solid rgba(115,228,255,.22);
+      background: #171b24;
+      display: flex;
+      align-items: center;
+      padding: 0 18px;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+
+    .shortcut { color: #7dd3fc; font-weight: 900; }
+    .query { font-size: 22px; font-weight: 740; }
+    .count { margin-left: auto; color: #8a94a6; font-size: 12px; font-weight: 760; }
+
+    .result {
+      height: 76px;
+      border-radius: 13px;
+      border: 1px solid var(--line);
+      background: #141820;
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .result.active {
+      background: #182b42;
+      border-color: rgba(56,189,248,.34);
+    }
+
+    .result-key {
+      font: 15px/1.2 "SF Mono", Menlo, ui-monospace, monospace;
+      color: #f8fafc;
+      margin-bottom: 8px;
+    }
+
+    .result-desc {
+      color: #8995a8;
+      font-size: 12px;
+    }
+
+    .tag {
+      align-self: center;
+      border-radius: 999px;
+      background: #202632;
+      color: #a8b3c5;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 820;
+    }
+
+    .active .tag {
+      background: #0b3553;
+      color: #7dd3fc;
+    }
+
+    .apply-card {
+      background: #f7f8fa;
+      color: #101828;
+    }
+
+    .apply-head {
+      height: 76px;
+      background: white;
+      border-bottom: 1px solid #e4e7ec;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 30px;
+    }
+
+    .apply-head strong { font-size: 18px; }
+    .backup {
+      border-radius: 999px;
+      border: 1px solid #abefc6;
+      background: #ecfdf3;
+      color: #067647;
+      padding: 8px 13px;
+      font-size: 12px;
+      font-weight: 840;
+    }
+
+    .steps { padding: 28px 30px 18px; }
+    .step {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .step-num {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #dbeafe;
+      color: #1d4ed8;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+    }
+
+    .step strong { display: block; font-size: 15px; margin-bottom: 5px; }
+    .step p { margin: 0; color: #667085; font-size: 12px; line-height: 1.45; }
+
+    .diff {
+      margin: 0 30px 26px;
+      padding: 20px 22px;
+      border-radius: 14px;
+      background: #111827;
+      font: 13px/2 "SF Mono", Menlo, ui-monospace, monospace;
+    }
+
+    .apply-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 0 30px 30px;
+    }
+
+    .ghost-btn,
+    .primary-btn {
+      height: 38px;
+      border-radius: 9px;
+      padding: 0 18px;
+      font-weight: 820;
+      border: 1px solid #d0d5dd;
+      background: white;
+      color: #344054;
+    }
+
+    .primary-btn {
+      border-color: transparent;
+      color: white;
+      background: #2563eb;
+    }
+
+    @media (max-width: 1700px) {
+      body { min-width: 0; }
+
+      .board {
+        width: 100%;
+        padding: 36px 60px 72px;
+      }
+
+      .board-header {
+        grid-template-columns: 1fr;
+        gap: 22px;
+        margin-bottom: 34px;
+      }
+
+      .lede,
+      .note {
+        width: min(100%, 980px);
+      }
+
+      .stage {
+        grid-template-columns: 1fr;
+      }
+
+      .window {
+        width: min(1180px, 100%);
+      }
+
+      .side-stack {
+        width: min(1180px, 100%);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 1100px) {
+      .board { padding: 28px 28px 56px; }
+      .side-stack { grid-template-columns: 1fr; }
+      h1 { font-size: 46px; }
+      .window { transform-origin: top left; }
+    }
+  </style>
+</head>
+<body>
+  <main class="board">
+    <header class="board-header">
+      <div>
+        <h1>Specter</h1>
+        <p class="lede">一个给 Ghostty 使用者的 native macOS 配置实验室。设计重点不是“把 config 表单化”，而是让用户在可视反馈、安全写入和内联文档之间形成清晰的操作闭环。</p>
+        <div class="chips">
+          <span class="chip primary">macOS utility</span>
+          <span class="chip">live preview first</span>
+          <span class="chip">explicit Apply</span>
+          <span class="chip">comment-preserving writer</span>
+        </div>
+      </div>
+      <aside class="note">设计方向：专业工具的密度，终端产品的克制，macOS Inspector 的确定性。视觉上避开现有 SwiftUI 表单感，把核心卖点放回屏幕中心。</aside>
+    </header>
+
+    <section class="stage">
+      <div class="window">
+        <div class="titlebar">
+          <div class="traffic">
+            <span class="dot red"></span>
+            <span class="dot amber"></span>
+            <span class="dot green"></span>
+          </div>
+          <span class="app-name">Specter</span>
+          <span class="path">~/.config/ghostty/config</span>
+          <div class="search"><span>Search every option</span><strong>⌘K</strong></div>
+          <span class="toolbar-btn">Reset</span>
+          <span class="toolbar-btn apply">Apply 3</span>
+        </div>
+
+        <div class="shell">
+          <nav class="sidebar">
+            <p class="label">CONFIG AREAS</p>
+            <div class="nav-item active"><span class="glyph">A</span><div><div class="nav-title">Appearance</div><div class="nav-sub">Theme, opacity, blur</div></div></div>
+            <div class="nav-item"><span class="glyph">F</span><div><div class="nav-title">Font</div><div class="nav-sub">Family, size, ligature</div></div></div>
+            <div class="nav-item"><span class="glyph">W</span><div><div class="nav-title">Window</div><div class="nav-sub">Padding, titlebar</div></div></div>
+            <div class="nav-item"><span class="glyph">C</span><div><div class="nav-title">Cursor</div><div class="nav-sub">Shape and motion</div></div></div>
+            <div class="nav-item"><span class="glyph">S</span><div><div class="nav-title">Shell</div><div class="nav-sub">Integration mode</div></div></div>
+            <div class="nav-item"><span class="glyph">K</span><div><div class="nav-title">Keybinds</div><div class="nav-sub">Read-only in v1</div></div></div>
+            <div class="safety-card">
+              <strong>Safe write model</strong>
+              <p>Backs up first. Writes only dirty keys. Keeps comments and unknown config lines intact.</p>
+            </div>
+          </nav>
+
+          <section class="workspace">
+            <div class="eyebrow">TERMINAL LAB</div>
+            <h2>Tune once. See it immediately.</h2>
+            <p class="subcopy">Every control updates the embedded preview instantly. Disk stays untouched until Apply.</p>
+
+            <div class="theme-strip">
+              <div class="strip-title">
+                <span>Theme gallery</span>
+                <span class="theme-actions">
+                  <span>4 featured picks</span>
+                  <span class="all-themes-link">All themes →</span>
+                </span>
+              </div>
+              <div class="swatches">
+                <div class="swatch" style="background:#1a1b26"><span class="accent" style="background:#7aa2f7"></span>Tokyo Night</div>
+                <div class="swatch" style="background:#1e1e2e"><span class="accent" style="background:#cba6f7"></span>Catppuccin</div>
+                <div class="swatch" style="background:#1d2021"><span class="accent" style="background:#fabd2f"></span>Gruvbox</div>
+                <div class="swatch" style="background:#2e3440"><span class="accent" style="background:#88c0d0"></span>Nord</div>
+              </div>
+            </div>
+
+            <div class="terminal-wrap">
+              <div class="terminal">
+                <div class="terminal-head">
+                  <span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span>
+                  <span class="terminal-title">ghostty · zsh · Tokyo Night</span>
+                  <span class="live">LIVE PREVIEW</span>
+                </div>
+                <div class="terminal-body">
+                  <div><span class="cyan">~/Projects/Specter</span> $ git diff ~/.config/ghostty/config</div>
+                  <div class="minus">- theme = Catppuccin Mocha</div>
+                  <div class="plus">+ theme = TokyoNight</div>
+                  <div class="plus">+ background-opacity = 0.86</div>
+                  <div class="plus">+ font-family = JetBrainsMono Nerd Font Mono</div>
+                  <div><span class="purple">specter</span> Backup created before write: 2026-05-26T17-39.config</div>
+                  <div><span class="gold">ghostty</span> Reload requested. No comments or unknown keys touched.</div>
+                  <div>▌</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rail">
+              <span>Unsaved changes</span>
+              <code>theme, font-size, background-opacity</code>
+              <button>Apply safely</button>
+            </div>
+          </section>
+
+          <aside class="inspector">
+            <h3>Appearance</h3>
+            <p class="desc">Curated settings with docs, constraints, and suggested defaults.</p>
+            <div class="status-card">
+              <div><strong>3 unsaved edits</strong><p>No file writes until Apply.</p></div>
+              <span class="status-dot"></span>
+            </div>
+
+            <div class="section-label">VISUAL</div>
+            <div class="option active"><div><div class="key">theme</div><div class="help">Follow system or pick exact Ghostty themes.</div></div><div class="value action">Browse 128</div></div>
+            <div class="option active"><div><div class="key">background-opacity</div><div class="help">Recommended: 0.84-0.92 for readable translucency.</div></div><div class="value">0.86</div></div>
+            <div class="option"><div><div class="key">background-blur-radius</div><div class="help">Only applies when opacity is below 1.</div></div><div class="value">18</div></div>
+
+            <div class="section-label">TYPOGRAPHY</div>
+            <div class="option active"><div><div class="key">font-family</div><div class="help">Nerd Font variants keep icons aligned.</div></div><div class="value">JetBrains</div></div>
+            <div class="option"><div><div class="key">font-size</div><div class="help">Common range for focused coding sessions.</div></div><div class="value">14</div></div>
+          </aside>
+        </div>
+      </div>
+
+      <aside class="side-stack">
+        <section>
+          <h3 class="mini-title">Command palette as navigation</h3>
+          <p class="mini-copy">Search reaches curated and non-curated Ghostty options; selection jumps the Inspector and highlights the row.</p>
+          <div class="palette">
+            <div class="palette-search"><span class="shortcut">⌘K</span><span class="query">background</span><span class="count">12 results</span></div>
+            <div class="result active"><div><div class="result-key">background-opacity</div><div class="result-desc">Window background opacity. 0 transparent, 1 opaque.</div></div><span class="tag">Appearance</span></div>
+            <div class="result"><div><div class="result-key">background-blur-radius</div><div class="result-desc">Blur strength behind translucent terminal surfaces.</div></div><span class="tag">Appearance</span></div>
+            <div class="result"><div><div class="result-key">background</div><div class="result-desc">Raw color value preserved when not curated.</div></div><span class="tag">Advanced</span></div>
+          </div>
+        </section>
+
+        <section>
+          <h3 class="mini-title">Apply is a ritual of trust</h3>
+          <p class="mini-copy">The UI should make users feel their dotfiles are respected before a write happens.</p>
+          <div class="apply-card">
+            <div class="apply-head"><strong>Ready to apply 3 changes?</strong><span class="backup">Backup ready</span></div>
+            <div class="steps">
+              <div class="step"><span class="step-num">1</span><div><strong>Create timestamped backup</strong><p>Stored under Application Support/Specter/Backups.</p></div></div>
+              <div class="step"><span class="step-num">2</span><div><strong>Patch only dirty keys</strong><p>Preserve comments, blank lines, unknown options.</p></div></div>
+              <div class="step"><span class="step-num">3</span><div><strong>Request Ghostty reload</strong><p>AppleScript best-effort with fallback toast.</p></div></div>
+            </div>
+            <div class="diff"><div class="minus">- background-opacity = 1.00</div><div class="plus">+ background-opacity = 0.86</div><div class="plus">+ theme = TokyoNight</div></div>
+            <div class="apply-actions"><button class="ghost-btn">Cancel</button><button class="primary-btn">Apply now</button></div>
+          </div>
+        </section>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>
