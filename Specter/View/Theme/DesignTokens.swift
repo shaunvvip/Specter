@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 // MARK: - Palette
 // Tokens sourced from design/specter-high-fidelity.html.
@@ -95,4 +96,31 @@ extension Color {
         let b = Double(hex & 0xff) / 255.0
         self = Color(red: r, green: g, blue: b)
     }
+
+    /// Parse `"#1a1b26"` / `"1a1b26"` into an sRGB Color. Returns `fallback`
+    /// (default: opaque dark) for malformed input.
+    init(hexString: String, fallback: Color = Color(hex: 0x15151f)) {
+        var s = hexString
+        if s.hasPrefix("#") { s.removeFirst() }
+        guard s.count == 6, let v = UInt32(s, radix: 16) else {
+            self = fallback
+            return
+        }
+        self.init(hex: v)
+    }
+
+    /// Lighten/darken by mixing toward white (delta > 0) or black (delta < 0).
+    /// `delta` is roughly the fraction (0…1). Uses NSColor for the sRGB math.
+    func mix(toward target: Color, amount: Double) -> Color {
+        let a = max(0, min(1, amount))
+        guard let lhs = NSColor(self).usingColorSpace(.sRGB),
+              let rhs = NSColor(target).usingColorSpace(.sRGB) else { return self }
+        let r = lhs.redComponent * (1 - a) + rhs.redComponent * a
+        let g = lhs.greenComponent * (1 - a) + rhs.greenComponent * a
+        let b = lhs.blueComponent * (1 - a) + rhs.blueComponent * a
+        return Color(red: r, green: g, blue: b)
+    }
+
+    func lightened(_ amount: Double) -> Color { mix(toward: .white, amount: amount) }
+    func darkened(_ amount: Double) -> Color { mix(toward: .black, amount: amount) }
 }
